@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import TodoHeader from './TodoHeader';
 import TodoMain from './TodoMain';
 import TodoInput from './TodoInput';
@@ -8,9 +8,12 @@ import { Spinner } from 'reactstrap';
 import { API_BASE_URL as BASE, TODO, USER } from '../../config/host-config';
 import { useNavigate } from 'react-router-dom';
 import { getLoginUserInfo } from '../../utils/login-util';
+import AuthContext from '../../utils/AuthContext';
+import HttpService from '../../utils/HttpService';
 
 const TodoTemplate = () => {
   const redirection = useNavigate();
+  const { onLogout } = useContext(AuthContext);
 
   // 로그인 인증 토큰 얻어오기
   const [token, setToken] = useState(getLoginUserInfo().token);
@@ -69,6 +72,8 @@ const TodoTemplate = () => {
       setTodos(json.todos);
     } else if (res.status === 401) {
       alert('일반 회원은 일정 등록이 5개로 제한됩니다 ㅠㅠ');
+    } else if (res.status === 400) {
+      alert('올바르지 않은 입력값 입니다.');
     }
 
     // fetch(API_BASE_URL, {
@@ -155,6 +160,7 @@ const TodoTemplate = () => {
 
   useEffect(() => {
     // 페이지가 처음 렌더링 됨과 동시에 할 일 목록을 서버에 요청해서 뿌려 주겠습니다.
+    console.log('TodoTemplate useEffect called');
     fetch(API_BASE_URL, {
       method: 'GET',
       headers: requestHeader,
@@ -163,6 +169,11 @@ const TodoTemplate = () => {
         if (res.status === 200) return res.json();
         else if (res.status === 403) {
           alert('로그인이 필요한 서비스 입니다.');
+          redirection('/login');
+          return;
+        } else if (res.status === 401) {
+          alert('토큰 만료! 다시 로그인 하세요.');
+          onLogout();
           redirection('/login');
           return;
         } else {
